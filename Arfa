@@ -1,0 +1,113 @@
+`RobloxFlightController.lua`
+```lua
+-- Roblox Flight Controller for Mobile Devices
+-- Paste this code into a LocalScript inside StarterPlayerScripts
+
+-- UI Setup
+local player = game:GetService("Players").LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "FlightControls"
+screenGui.Parent = playerGui
+
+-- Create a background frame for controls
+local controlFrame = Instance.new("Frame")
+controlFrame.Name = "ControlFrame"
+controlFrame.BackgroundTransparency = 0.7
+controlFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+controlFrame.BorderSizePixel = 0
+controlFrame.Size = UDim2.new(1, 0, 0.25, 0)
+controlFrame.Position = UDim2.new(0, 0, 0.75, 0)
+controlFrame.Parent = screenGui
+
+-- Create movement buttons
+local function createButton(name, position, size)
+	local button = Instance.new("TextButton")
+	button.Name = name
+	button.Size = UDim2.new(size, 0, size, 0)
+	button.Position = position
+	button.BackgroundColor3 = Color3.new(0.2, 0.2, 0.2)
+	button.BorderSizePixel = 0
+	button.Text = ""
+	button.TextColor3 = Color3.new(1, 1, 1)
+	button.Font = Enum.Font.SourceSans
+	button.TextSize = 14
+	button.AutoButtonColor = true
+	button.Parent = controlFrame
+	
+	return button
+end
+
+-- Flight controls
+local upButton = createButton("UpButton", UDim2.new(0.5, 0, 0, 0), 0.2)
+local downButton = createButton("DownButton", UDim2.new(0.5, 0, 0.4, 0), 0.2)
+local forwardButton = createButton("ForwardButton", UDim2.new(0.7, 0, 0.2, 0), 0.2)
+local backButton = createButton("BackButton", UDim2.new(0.3, 0, 0.2, 0), 0.2)
+local leftButton = createButton("LeftButton", UDim2.new(0.1, 0, 0.2, 0), 0.2)
+local rightButton = createButton("RightButton", UDim2.new(0.9, 0, 0.2, 0), 0.2)
+local toggleButton = createButton("ToggleButton", UDim2.new(0.5, 0, 0.8, 0), 0.3)
+toggleButton.Text = "Toggle Flight"
+
+-- Variables
+local flying = false
+local maxSpeed = 50
+local humanoid = player.Character:WaitForChild("Humanoid")
+local rootPart = player.Character:WaitForChild("HumanoidRootPart")
+
+-- Flight function
+local function updateFlight(direction, speed)
+	if flying and humanoid and rootPart then
+		rootPart.Velocity = rootPart.Velocity + direction * speed
+	end
+end
+
+-- Input connections
+local connections = {}
+
+local function setupConnection(button, direction)
+	connections[button.Name] = button.MouseButton1Down:Connect(function()
+		while button:IsDescendantOf(game) and button.Active do
+			updateFlight(direction, maxSpeed)
+			game:GetService("RunService").Heartbeat:Wait()
+		end
+	end)
+end
+
+setupConnection(upButton, Vector3.new(0, 1, 0))
+setupConnection(downButton, Vector3.new(0, -1, 0))
+setupConnection(forwardButton, rootPart.CFrame.LookVector)
+setupConnection(backButton, -rootPart.CFrame.LookVector)
+setupConnection(leftButton, -rootPart.CFrame.RightVector)
+setupConnection(rightButton, rootPart.CFrame.RightVector)
+
+toggleButton.MouseButton1Click:Connect(function()
+	flying = not flying
+	if flying then
+		humanoid:ChangeState(Enum.HumanoidStateType.Physics)
+		toggleButton.Text = "Flight ON"
+		toggleButton.BackgroundColor3 = Color3.new(0, 0.5, 0)
+	else
+		humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+		toggleButton.Text = "Flight OFF"
+		toggleButton.BackgroundColor3 = Color3.new(0.5, 0, 0)
+	end
+end)
+
+-- Character respawn handling
+player.CharacterAdded:Connect(function(character)
+	humanoid = character:WaitForChild("Humanoid")
+	rootPart = character:WaitForChild("HumanoidRootPart")
+	
+	-- Refresh direction vectors when camera changes
+	game:GetService("RunService").Heartbeat:Connect(function()
+		if flying then
+			setupConnection(forwardButton, rootPart.CFrame.LookVector)
+			setupConnection(backButton, -rootPart.CFrame.LookVector)
+			setupConnection(leftButton, -rootPart.CFrame.RightVector)
+			setupConnection(rightButton, rootPart.CFrame.RightVector)
+		end
+	end)
+end)
+
+```
